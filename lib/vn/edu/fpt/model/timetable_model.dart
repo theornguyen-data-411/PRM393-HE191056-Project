@@ -34,7 +34,7 @@ class PeriodModel {
   final String tietId;
   final String thu;
   final int thuSo;
-  final String tietSo;
+  final int tietSo;
   final String monHoc;
   final String giaoVien;
   final String giaoVienId;
@@ -63,7 +63,7 @@ class PeriodModel {
       tietId: data['tietId'] ?? '',
       thu: data['thu'] ?? '',
       thuSo: data['thuSo'] ?? 0,
-      tietSo: data['tietSo'] ?? '',
+      tietSo: int.tryParse(data['tietSo']?.toString() ?? '') ?? 0,
       monHoc: data['monHoc'] ?? '',
       giaoVien: data['giaoVien'] ?? '',
       giaoVienId: data['giaoVienId'] ?? '',
