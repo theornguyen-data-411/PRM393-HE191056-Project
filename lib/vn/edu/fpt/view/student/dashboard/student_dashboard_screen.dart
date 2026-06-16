@@ -118,50 +118,48 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
-        children: [
-          Container(
-            height: 120, padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
-            decoration: const BoxDecoration(color: Color(0xFFFF6B00), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16))),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () {}),
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Text('Xin chào,', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  Text(_student?.hoTen ?? 'Học sinh', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                ]),
-                Container(
-                  width: 40, height: 40, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                  child: Center(child: Text(_student?.initials ?? 'HS', style: const TextStyle(color: Color(0xFFFF6B00), fontWeight: FontWeight.bold))),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  StudentInfoCard(
-                    studentName: _student?.hoTen,
-                    className: _student?.tenLop,
-                    studentId: _student?.maHocSinh,
-                    academicYear: _student?.namHoc,
-                    avatarUrl: _student?.anhDaiDien,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildScheduleCard(),
-                  const SizedBox(height: 16),
-                  _buildStatsGrid(),
-                  const SizedBox(height: 16),
-                  _buildQuickAccess(),
-                ],
-              ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Xin chào,', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(_student?.hoTen ?? 'Học sinh', style: const TextStyle(color: Color(0xFF1A3C6E), fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              backgroundColor: const Color(0xFFFF6B00),
+              radius: 18,
+              child: Text(_student?.initials ?? 'HS', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            StudentInfoCard(
+              studentName: _student?.hoTen,
+              className: _student?.tenLop,
+              studentId: _student?.maHocSinh,
+              academicYear: _student?.namHoc,
+              avatarUrl: _student?.anhDaiDien,
+            ),
+            const SizedBox(height: 12),
+            _buildScheduleCard(),
+            const SizedBox(height: 12),
+            _buildStatsGrid(),
+            const SizedBox(height: 20),
+            _buildQuickAccess(),
+          ],
+        ),
       ),
       bottomNavigationBar: CustomBottomNavBar(currentIndex: 0, onTap: _onNavTap),
     );
@@ -175,10 +173,19 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('📅 Hôm nay - ${_formatDate()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            TextButton(onPressed: () {}, child: const Text('Xem TKB', style: TextStyle(color: Color(0xFFFF6B00), fontSize: 12))),
+            Row(
+              children: [
+                const Icon(Icons.calendar_month, color: Color(0xFFFF6B00), size: 18),
+                const SizedBox(width: 8),
+                Text('Hôm nay - ${_formatDate()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              ],
+            ),
+            GestureDetector(
+              onTap: () => _onNavTap(1),
+              child: const Text('Xem TKB', style: TextStyle(color: Color(0xFFFF6B00), fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (_todaySchedule.isEmpty)
             const EmptyStateWidget(message: 'Hôm nay bạn không có tiết học')
           else
@@ -189,31 +196,40 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   }
 
   Widget _buildStatsGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
-      childAspectRatio: 1.2,
+    return Row(
       children: [
         _buildStatItem('Điểm danh', '$_attendancePercent%', 'Tháng này', const Color(0xFF28A745)),
+        const SizedBox(width: 8),
         _buildStatItem('ĐTB HK1', _avgGrade.toStringAsFixed(1), 'Giỏi', const Color(0xFFFF6B00)),
+        const SizedBox(width: 8),
         _buildStatItem('Bài tập', '$_pendingHomework', 'Chưa nộp', const Color(0xFFDC3545)),
       ],
     );
   }
 
   Widget _buildStatItem(String title, String value, String sub, Color color) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE1E3E4))),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-        Text(sub, style: const TextStyle(fontSize: 9, color: Colors.grey)),
-      ]),
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE1E3E4)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            const SizedBox(height: 4),
+            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            const SizedBox(height: 2),
+            Text(sub, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          ],
+        ),
+      ),
     );
   }
+
 
   Widget _buildQuickAccess() {
     return Column(

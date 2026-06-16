@@ -20,11 +20,11 @@ class TimetableModel {
   factory TimetableModel.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return TimetableModel(
-      tkzId: data['tkzId'] ?? '',
+      tkzId: data['tkbId'] ?? data['tkzId'] ?? '',
       lopId: data['lopId'] ?? '',
       tenLop: data['tenLop'] ?? '',
       namHoc: data['namHoc'] ?? '',
-      hocKy: data['hocKy'] ?? '1',
+      hocKy: data['hocKy']?.toString() ?? '1',
       capNhatLuc: (data['capNhatLuc'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -34,7 +34,7 @@ class PeriodModel {
   final String tietId;
   final String thu;
   final int thuSo;
-  final int tietSo;
+  final String tietSo;
   final String monHoc;
   final String giaoVien;
   final String giaoVienId;
@@ -63,9 +63,9 @@ class PeriodModel {
       tietId: data['tietId'] ?? '',
       thu: data['thu'] ?? '',
       thuSo: data['thuSo'] ?? 0,
-      tietSo: int.tryParse(data['tietSo']?.toString() ?? '') ?? 0,
+      tietSo: data['tietSo']?.toString() ?? '',
       monHoc: data['monHoc'] ?? '',
-      giaoVien: data['giaoVien'] ?? '',
+      giaoVien: data['tenGiaoVien'] ?? data['giaoVien'] ?? '',
       giaoVienId: data['giaoVienId'] ?? '',
       phong: data['phong'] ?? '',
       gioVao: data['gioVao'] ?? '',

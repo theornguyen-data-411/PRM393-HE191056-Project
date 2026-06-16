@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PeriodCard extends StatelessWidget {
-  final int tietSo;
+  final String tietSo;
   final String monHoc;
   final String teacher;
   final String phong;

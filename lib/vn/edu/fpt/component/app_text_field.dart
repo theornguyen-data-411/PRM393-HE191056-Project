@@ -7,6 +7,7 @@ class AppTextField extends StatelessWidget {
   final bool isPassword;
   final bool obscureText;
   final VoidCallback? onToggleVisibility;
+  final TextInputType? keyboardType;
 
   const AppTextField({
     super.key,
@@ -16,6 +17,7 @@ class AppTextField extends StatelessWidget {
     this.isPassword = false,
     this.obscureText = false,
     this.onToggleVisibility,
+    this.keyboardType,
   });
 
   @override
@@ -29,6 +31,7 @@ class AppTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         obscureText: isPassword && obscureText,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           prefixIcon: Icon(prefixIcon, color: Colors.grey, size: 20),
           hintText: hintText,

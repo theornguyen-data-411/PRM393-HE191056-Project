@@ -195,7 +195,15 @@ class _DormitoryScreenState extends State<DormitoryScreen> {
                   padding: const EdgeInsets.only(right: 24),
                   child: Column(
                     children: [
-                      CircleAvatar(radius: 22, backgroundImage: NetworkImage(mate.anhDaiDien)),
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundImage: (mate.anhDaiDien.trim().isNotEmpty)
+                            ? NetworkImage(mate.anhDaiDien)
+                            : null,
+                        child: (mate.anhDaiDien.trim().isEmpty)
+                            ? const Icon(Icons.person, size: 20)
+                            : null,
+                      ),
                       const SizedBox(height: 4),
                       Text(mate.hoTen.split(' ').last, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                     ],

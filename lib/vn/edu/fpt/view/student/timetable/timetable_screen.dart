@@ -16,6 +16,7 @@ class TimetableScreen extends StatefulWidget {
 class _TimetableScreenState extends State<TimetableScreen> {
   String? _currentUserId;
   StudentModel? _student;
+  String? _tkbId;
   List<PeriodModel> _periods = [];
   int _selectedDay = DateTime.now().weekday; // Dart starts Mon at 1
   bool _isLoading = true;
@@ -38,28 +39,50 @@ class _TimetableScreenState extends State<TimetableScreen> {
   Future<void> _loadData() async {
     try {
       final studentDoc = await FirebaseFirestore.instance.collection('hoc_sinh').doc(_currentUserId).get();
-      if (studentDoc.exists) _student = StudentModel.fromFirestore(studentDoc);
+      if (studentDoc.exists) {
+        _student = StudentModel.fromFirestore(studentDoc);
+        // Pre-fetch TKB ID to speed up switching days
+        final tkbQuery = await FirebaseFirestore.instance
+            .collection('thoi_khoa_bieu')
+            .where('lopId', isEqualTo: _student!.lopId)
+            .limit(1)
+            .get();
+        if (tkbQuery.docs.isNotEmpty) {
+          _tkbId = tkbQuery.docs.first.id;
+        }
+      }
       await _loadPeriods();
-      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loadPeriods() async {
-    if (_student == null) return;
-    final tkbQuery = await FirebaseFirestore.instance.collection('thoi_khoa_bieu').where('lopId', isEqualTo: _student!.lopId).limit(1).get();
-    if (tkbQuery.docs.isEmpty) {
-      setState(() => _periods = []);
+    if (_tkbId == null) {
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
-    final tkbDoc = tkbQuery.docs.first;
-    final periodsSnapshot = await tkbDoc.reference.collection('tiet_hoc').where('thuSo', isEqualTo: _selectedDay).get();
-    final docs = periodsSnapshot.docs;
-    setState(() {
-      _periods = docs.map((doc) => PeriodModel.fromFirestore(doc)).toList();
-      _periods.sort((a, b) => a.tietSo.compareTo(b.tietSo));
-    });
+    
+    try {
+      final periodsSnapshot = await FirebaseFirestore.instance
+          .collection('thoi_khoa_bieu')
+          .doc(_tkbId!)
+          .collection('tiet_hoc')
+          .where('thuSo', isEqualTo: _selectedDay)
+          .get();
+      
+      final docs = periodsSnapshot.docs;
+      if (mounted) {
+        setState(() {
+          _periods = docs.map((doc) => PeriodModel.fromFirestore(doc)).toList();
+          // Sort numerically by first character of tietSo (e.g. "1-2" -> 1)
+          _periods.sort((a, b) => a.tietSo.compareTo(b.tietSo));
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _onNavTap(int index) {
@@ -167,7 +190,6 @@ class _TimetableScreenState extends State<TimetableScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(day['label'] as String, style: TextStyle(color: isSelected ? Colors.white : Colors.grey, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                    if (isSelected) const Text('03/06', style: TextStyle(color: Colors.white70, fontSize: 10)),
                   ],
                 ),
               ),

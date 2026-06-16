@@ -29,8 +29,13 @@ class StudentInfoCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundImage: NetworkImage(avatarUrl ?? 'https://via.placeholder.com/150'),
+            backgroundImage: (avatarUrl != null && avatarUrl!.trim().isNotEmpty)
+                ? NetworkImage(avatarUrl!)
+                : null,
             backgroundColor: const Color(0xFFF3F4F5),
+            child: (avatarUrl == null || avatarUrl!.trim().isEmpty)
+                ? const Icon(Icons.person, color: Color(0xFFFF6B00))
+                : null,
           ),
           const SizedBox(width: 12),
           Expanded(

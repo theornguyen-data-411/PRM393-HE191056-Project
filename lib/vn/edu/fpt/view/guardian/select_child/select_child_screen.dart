@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/app_colors.dart';
 
 class SelectChildScreen extends StatefulWidget {
   const SelectChildScreen({super.key});
@@ -9,438 +10,233 @@ class SelectChildScreen extends StatefulWidget {
 }
 
 class _SelectChildScreenState extends State<SelectChildScreen> {
-  String? _currentUserId;
-  List<Map<String, dynamic>> _children = [];
-  String? _selectedChildId;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      if (args != null && args.containsKey('userId')) {
-        _currentUserId = args['userId'] as String;
-        _loadChildren();
-      } else {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không tìm thấy thông tin người dùng')),
-          );
-        }
-      }
-    });
-  }
-
-  Future<void> _loadChildren() async {
-    if (_currentUserId == null) return;
-
-    try {
-      // Load guardian's children from phu_huynh collection (NOT users collection)
-      final guardianDoc = await FirebaseFirestore.instance
-          .collection('phu_huynh')
-          .doc(_currentUserId)
-          .get();
-
-      if (guardianDoc.exists) {
-        final guardianData = guardianDoc.data()!;
-        // Field is 'danhSachConId' not 'danhSachCon'
-        final childrenIds = List<String>.from(guardianData['danhSachConId'] ?? []);
-
-        if (childrenIds.isEmpty) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
-          return;
-        }
-
-        for (var childId in childrenIds) {
-          final childDoc = await FirebaseFirestore.instance
-              .collection('hoc_sinh')
-              .doc(childId)
-              .get();
-
-          if (childDoc.exists) {
-            final childData = childDoc.data()!;
-
-            // Get class info from lop_hoc collection (NOT lop)
-            final classDoc = await FirebaseFirestore.instance
-                .collection('lop_hoc')
-                .doc(childData['lopId'])
-                .get();
-
-            final classData = classDoc.exists ? classDoc.data() : {};
-
-            setState(() {
-              _children.add({
-                'id': childId,
-                'hoTen': childData['hoTen'] ?? 'Học sinh',
-                'maHocSinh': childData['maHocSinh'] ?? childId,
-                'lop': classData?['tenLop'] ?? 'Lớp',
-                'truong': classData?['truong'] ?? 'Trường',
-                'noiTru': childData['isNoiTru'] ?? false,
-                'avatarUrl': childData['anhDaiDien'],
-              });
-
-              if (_selectedChildId == null && _children.isNotEmpty) {
-                _selectedChildId = _children.first['id'];
-              }
-            });
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
-      }
-    }
-  }
-
-  String _getInitials(String name) {
-    final parts = name.split(' ');
-    if (parts.length >= 2) {
-      return '${parts[parts.length - 2][0]}${parts.last[0]}'.toUpperCase();
-    }
-    return name.isNotEmpty ? name[0].toUpperCase() : 'HS';
-  }
-
-  void _handleContinue() {
-    if (_selectedChildId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn học sinh')),
-      );
-      return;
-    }
-
-    Navigator.pushReplacementNamed(
-      context,
-      '/guardian-dashboard',
-      arguments: {
-        'childId': _selectedChildId,
-        'userId': _currentUserId,
-      },
-    );
-  }
+  String? selectedChildId;
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    // Giả sử lấy phuHuynhId từ Auth. Ở đây fix cứng ph_001 để demo theo database_seeder
+    const guardianId = 'ph_001';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFF6B00),
-        elevation: 0,
+        backgroundColor: AppColors.primaryContainer,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Chọn học sinh',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Center(
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('phu_huynh')
+            .doc(guardianId)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return const Center(child: Text('Đã có lỗi xảy ra'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          if (data == null) return const Center(child: Text('Không tìm thấy dữ liệu phụ huynh'));
+
+          final children = (data['danhSachCon'] as List? ?? []);
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE1E3E4)),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.surfaceVariant),
                   ),
                   child: Text(
-                    'Bạn có ${_children.length} con đang học tại FPT Schools',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF666666),
-                    ),
+                    'Bạn có ${children.length} con đang học tại FPT Schools',
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: _children.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.child_care,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Chưa có tài khoản học sinh nào',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF666666),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Liên hệ nhà trường để thêm tài khoản con',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF999999),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _children.length,
-                      itemBuilder: (context, index) {
-                        final child = _children[index];
-                        final isSelected = _selectedChildId == child['id'];
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: children.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final child = children[index] as Map<String, dynamic>;
+                    final childId = child['hocSinhId'];
+                    final isSelected = selectedChildId == childId;
 
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedChildId = child['id']),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFFFF6B00)
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFF6B00),
-                                    borderRadius: BorderRadius.circular(30),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFFF6B00).withOpacity(0.2),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      _getInitials(child['hoTen']),
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        child['hoTen'],
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF405E92),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        child['lop'],
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFFFF6B00),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        child['truong'],
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF666666),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 4,
-                                        children: [
-                                          if (child['noiTru'] == true)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF0062A1).withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: const Color(0xFF0062A1).withOpacity(0.2),
-                                                ),
-                                              ),
-                                              child: const Text(
-                                                'Nội trú',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Color(0xFF0062A1),
-                                                ),
-                                              ),
-                                            ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFEDEEEF),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              child['maHocSinh'],
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF5A4136),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? const Color(0xFFFF6B00)
-                                          : const Color(0xFFE1E3E4),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: isSelected
-                                      ? Center(
-                                          child: Container(
-                                            width: 12,
-                                            height: 12,
-                                            decoration: const BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Color(0xFFFF6B00),
-                                            ),
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedChildId = childId;
+                        });
                       },
-                    ),
-            ),
-            Container(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).padding.bottom + 16,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 20,
-                    offset: const Offset(0, -8),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _children.isEmpty ? null : _handleContinue,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF6B00),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected ? AppColors.primaryContainer : Colors.transparent,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        elevation: 0,
-                        shadowColor: const Color(0xFFFF6B00).withOpacity(0.4),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: isSelected ? AppColors.primaryContainer : AppColors.secondary,
+                              child: Text(
+                                child['hoTen'].split(' ').last.substring(0, 1),
+                                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    child['hoTen'],
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Lớp ${child['tenLop']}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.primaryContainer,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'THPT FPT Đà Nẵng',
+                                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.tertiary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: AppColors.tertiary.withOpacity(0.2)),
+                                        ),
+                                        child: const Text(
+                                          'Nội trú',
+                                          style: TextStyle(color: AppColors.tertiary, fontSize: 11),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surfaceVariant,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          childId,
+                                          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected ? AppColors.primaryContainer : AppColors.surfaceVariant,
+                                  width: 2,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? Center(
+                                      child: Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primaryContainer,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: selectedChildId != null
+                          ? () {
+                              // Chuyển sang Dashboard với con đã chọn
+                              Navigator.pushNamed(
+                                context,
+                                '/guardian-dashboard',
+                                arguments: selectedChildId,
+                              );
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryContainer,
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 4,
+                        shadowColor: AppColors.primaryContainer.withOpacity(0.25),
                       ),
                       child: const Text(
                         'Xem thông tin',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Liên hệ nhà trường để thêm tài khoản con'),
-                          ),
-                        );
-                      },
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Bạn muốn thêm tài khoản con?',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                    ),
+                    TextButton(
+                      onPressed: () {},
                       child: const Text(
-                        'Bạn muốn thêm tài khoản con?',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF666666),
-                        ),
+                        'Liên hệ nhà trường',
+                        style: TextStyle(color: AppColors.primaryContainer, fontWeight: FontWeight.bold),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }

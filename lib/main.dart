@@ -26,6 +26,7 @@ import 'vn/edu/fpt/view/guardian/chat/chat_detail_screen.dart';
 import 'vn/edu/fpt/view/guardian/profile/guardian_profile_screen.dart';
 import 'vn/edu/fpt/view/guardian/news/guardian_news_screen.dart';
 import 'vn/edu/fpt/view/guardian/timetable/child_timetable_screen.dart';
+import 'vn/edu/fpt/view/guardian/dashboard/homework_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,6 +83,7 @@ class MyApp extends StatelessWidget {
         '/guardian-profile': (context) => const GuardianProfileScreen(),
         '/guardian-news': (context) => const GuardianNewsScreen(),
         '/guardian-timetable': (context) => const ChildTimetableScreen(),
+        '/guardian-homework': (context) => const GuardianHomeworkScreen(),
       },
     );
   }

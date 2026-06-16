@@ -86,10 +86,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.white,
-                  backgroundImage: _student?.anhDaiDien.isNotEmpty == true
+                  backgroundImage: (_student?.anhDaiDien != null && _student!.anhDaiDien.trim().isNotEmpty)
                       ? NetworkImage(_student!.anhDaiDien)
                       : null,
-                  child: _student?.anhDaiDien.isEmpty == true
+                  child: (_student?.anhDaiDien == null || _student!.anhDaiDien.trim().isEmpty)
                       ? Text(_student?.initials ?? 'HS',
                           style: const TextStyle(fontSize: 32, color: Color(0xFFFF6B00), fontWeight: FontWeight.bold))
                       : null,
@@ -215,7 +215,28 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Đăng xuất'),
+              content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Xóa toàn bộ stack và quay về màn hình đăng nhập
+                    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                  },
+                  child: const Text('Đăng xuất', style: TextStyle(color: Color(0xFFFF6B00), fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+        },
         icon: const Icon(Icons.logout),
         label: const Text('Đăng xuất'),
         style: ElevatedButton.styleFrom(
