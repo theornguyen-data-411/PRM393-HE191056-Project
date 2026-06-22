@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../model/student_model.dart';
-import '../../../model/timetable_model.dart';
-import '../../../component/info_card.dart';
-import '../../../component/period_card.dart';
-import '../../../component/bottom_nav_bar.dart';
-import '../../../component/empty_state_widget.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/student_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/timetable_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/info_card.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/period_card.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/bottom_nav_bar.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/empty_state_widget.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});

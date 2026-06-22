@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../model/homework_model.dart';
-import '../../../service/homework_service.dart';
-import '../../../component/bottom_nav_bar.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/homework_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/service/homework_service.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/bottom_nav_bar.dart';
 
 class HomeworkScreen extends StatefulWidget {
   const HomeworkScreen({super.key});

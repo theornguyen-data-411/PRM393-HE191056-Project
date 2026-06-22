@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../model/notification_model.dart';
-import '../../../model/news_model.dart';
-import '../../../service/notification_service.dart';
-import '../../../component/bottom_nav_bar.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/empty_state_widget.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/notification_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/news_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/service/notification_service.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/bottom_nav_bar.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -14,6 +15,7 @@ class NewsScreen extends StatefulWidget {
 class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final NotificationService _service = NotificationService();
+  String _currentUserId = 'hs_001';
   List<NotificationModel> _notifications = [];
   List<NewsModel> _news = [];
   bool _isLoading = true;
@@ -22,19 +24,35 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadData();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['userId'] != null) {
+        _currentUserId = args['userId'];
+      }
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
-      final notifs = await _service.getNotifications();
-      final news = await _service.getNews();
-      setState(() {
-        _notifications = notifs;
-        _news = news;
-        _isLoading = false;
-      });
+      // Parallel fetch for speed
+      final results = await Future.wait([
+        _service.getNotifications(userId: _currentUserId),
+        _service.getNews(),
+      ]);
+      
+      if (mounted) {
+        setState(() {
+          _notifications = results[0] as List<NotificationModel>;
+          _news = results[1] as List<NewsModel>;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
+      debugPrint('Error loading news/notifs: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -48,7 +66,7 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
       4: '/student-profile',
     };
     if (routes.containsKey(index)) {
-      Navigator.pushReplacementNamed(context, routes[index]!, arguments: {'userId': 'hs_001'});
+      Navigator.pushReplacementNamed(context, routes[index]!, arguments: {'userId': _currentUserId});
     }
   }
 
@@ -61,7 +79,7 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pushReplacementNamed(context, '/student-dashboard', arguments: {'userId': 'hs_001'}),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/student-dashboard', arguments: {'userId': _currentUserId}),
         ),
         title: const Text('Thông báo', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -70,7 +88,19 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
             alignment: Alignment.center,
             children: [
               IconButton(icon: const Icon(Icons.notifications, color: Colors.black), onPressed: () {}),
-              Positioned(top: 10, right: 10, child: Container(padding: const EdgeInsets.all(2), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Text('3', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)))),
+              if (_notifications.any((n) => !n.isRead))
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    child: Text(
+                      '${_notifications.where((n) => !n.isRead).length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
             ],
           )
         ],
@@ -93,6 +123,12 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildNotificationsList() {
+    if (_notifications.isEmpty) {
+      return EmptyStateWidget(
+        message: 'Bạn chưa có thông báo nào',
+        icon: Icons.notifications_none,
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _notifications.length,
@@ -165,6 +201,12 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildNewsList() {
+    if (_news.isEmpty) {
+      return EmptyStateWidget(
+        message: 'Hiện chưa có tin tức mới',
+        icon: Icons.newspaper,
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _news.length,
@@ -179,17 +221,48 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
   Widget _buildFeaturedNews(NewsModel news) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(height: 160, width: double.infinity, decoration: BoxDecoration(borderRadius: const BorderRadius.vertical(top: Radius.circular(12)), image: news.anhBia.isNotEmpty ? DecorationImage(image: NetworkImage(news.anhBia), fit: BoxFit.cover) : null, color: Colors.grey.shade300)),
+          Container(
+            height: 180,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              color: Colors.grey.shade200,
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: news.anhBia.isNotEmpty
+                  ? Image.network(
+                      news.anhBia,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                      ),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                      },
+                    )
+                  : const Center(child: Icon(Icons.newspaper, color: Colors.grey, size: 40)),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFFFDBCC), borderRadius: BorderRadius.circular(12)), child: Text(news.chuyenMucText, style: const TextStyle(color: Color(0xFF7A3000), fontSize: 10, fontWeight: FontWeight.bold))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFFFDBCC), borderRadius: BorderRadius.circular(12)),
+                  child: Text(news.chuyenMucText, style: const TextStyle(color: Color(0xFF7A3000), fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
                 const SizedBox(height: 8),
                 Text(news.tieuDe, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 4),
@@ -206,10 +279,35 @@ class _NewsScreenState extends State<NewsScreen> with SingleTickerProviderStateM
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+      ),
       child: Row(
         children: [
-          Container(width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), image: news.anhBia.isNotEmpty ? DecorationImage(image: NetworkImage(news.anhBia), fit: BoxFit.cover) : null, color: Colors.grey.shade300)),
+          Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey.shade200,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: news.anhBia.isNotEmpty
+                  ? Image.network(
+                      news.anhBia,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.grey),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                      },
+                    )
+                  : const Icon(Icons.newspaper, color: Colors.grey),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

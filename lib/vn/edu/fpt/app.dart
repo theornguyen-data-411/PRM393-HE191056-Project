@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'app_router.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/app_router.dart';
 
 class FptApp extends StatelessWidget {
   const FptApp({super.key});

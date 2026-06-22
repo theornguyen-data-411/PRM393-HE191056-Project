@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../model/attendance_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/attendance_model.dart';
 
 class AttendanceService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;

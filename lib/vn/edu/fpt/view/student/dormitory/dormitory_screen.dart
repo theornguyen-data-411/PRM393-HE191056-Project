@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../model/dormitory_model.dart';
-import '../../../model/attendance_model.dart';
-import '../../../service/dormitory_service.dart';
-import '../../../service/attendance_service.dart';
-import '../../../component/bottom_nav_bar.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/dormitory_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/attendance_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/service/dormitory_service.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/service/attendance_service.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/bottom_nav_bar.dart';
 
 class DormitoryScreen extends StatefulWidget {
   const DormitoryScreen({super.key});

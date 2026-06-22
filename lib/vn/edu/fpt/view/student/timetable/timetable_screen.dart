@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../model/student_model.dart';
-import '../../../model/timetable_model.dart';
-import '../../../component/bottom_nav_bar.dart';
-import '../../../component/period_card.dart';
-import '../../../component/empty_state_widget.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/student_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/timetable_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/bottom_nav_bar.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/period_card.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/empty_state_widget.dart';
 
 class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
@@ -16,8 +16,8 @@ class TimetableScreen extends StatefulWidget {
 class _TimetableScreenState extends State<TimetableScreen> {
   String? _currentUserId;
   StudentModel? _student;
-  String? _tkbId;
-  List<PeriodModel> _periods = [];
+  List<PeriodModel> _allPeriods = [];
+  List<PeriodModel> _displayPeriods = [];
   int _selectedDay = DateTime.now().weekday; // Dart starts Mon at 1
   bool _isLoading = true;
 
@@ -38,51 +38,50 @@ class _TimetableScreenState extends State<TimetableScreen> {
 
   Future<void> _loadData() async {
     try {
-      final studentDoc = await FirebaseFirestore.instance.collection('hoc_sinh').doc(_currentUserId).get();
+      final studentDoc = await FirebaseFirestore.instance
+          .collection('hoc_sinh')
+          .doc(_currentUserId)
+          .get(const GetOptions(source: Source.serverAndCache));
+          
       if (studentDoc.exists) {
         _student = StudentModel.fromFirestore(studentDoc);
-        // Pre-fetch TKB ID to speed up switching days
+        
+        // Fetch TKB and periods in parallel if possible?
+        // First get the TKB doc to get its ID and collection ref
         final tkbQuery = await FirebaseFirestore.instance
             .collection('thoi_khoa_bieu')
             .where('lopId', isEqualTo: _student!.lopId)
             .limit(1)
-            .get();
+            .get(const GetOptions(source: Source.serverAndCache));
+            
         if (tkbQuery.docs.isNotEmpty) {
-          _tkbId = tkbQuery.docs.first.id;
+          final periodsSnapshot = await tkbQuery.docs.first.reference
+              .collection('tiet_hoc')
+              .get(const GetOptions(source: Source.serverAndCache));
+              
+          _allPeriods = periodsSnapshot.docs.map((doc) => PeriodModel.fromFirestore(doc)).toList();
         }
       }
-      await _loadPeriods();
+      _filterPeriods();
     } catch (e) {
+      debugPrint('Error loading timetable: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  void _filterPeriods() {
+    if (mounted) {
+      setState(() {
+        _displayPeriods = _allPeriods.where((p) => p.thuSo == _selectedDay).toList();
+        _displayPeriods.sort((a, b) => a.tietSo.compareTo(b.tietSo));
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _loadPeriods() async {
-    if (_tkbId == null) {
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
-    
-    try {
-      final periodsSnapshot = await FirebaseFirestore.instance
-          .collection('thoi_khoa_bieu')
-          .doc(_tkbId!)
-          .collection('tiet_hoc')
-          .where('thuSo', isEqualTo: _selectedDay)
-          .get();
-      
-      final docs = periodsSnapshot.docs;
-      if (mounted) {
-        setState(() {
-          _periods = docs.map((doc) => PeriodModel.fromFirestore(doc)).toList();
-          // Sort numerically by first character of tietSo (e.g. "1-2" -> 1)
-          _periods.sort((a, b) => a.tietSo.compareTo(b.tietSo));
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // This method is now replaced by local filtering for speed
+    _filterPeriods();
   }
 
   void _onNavTap(int index) {
@@ -129,13 +128,13 @@ class _TimetableScreenState extends State<TimetableScreen> {
           Expanded(
             child: _isLoading 
               ? const Center(child: CircularProgressIndicator())
-              : _periods.isEmpty
+              : _displayPeriods.isEmpty
                 ? const EmptyStateWidget(message: 'Hôm nay bạn không có tiết học')
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: _periods.length,
+                    itemCount: _displayPeriods.length,
                     itemBuilder: (context, index) {
-                      final p = _periods[index];
+                      final p = _displayPeriods[index];
                       return Column(
                         children: [
                           PeriodCard(tietSo: p.tietSo, monHoc: p.monHoc, teacher: p.shortTeacher, phong: p.phong, gioVao: p.gioVao, gioRa: p.gioRa, colorHex: p.mauSac),
@@ -222,7 +221,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
               Text('Thứ $_selectedDay, ngày $dateString', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF405E92))),
             ],
           ),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFFF6B00), borderRadius: BorderRadius.circular(20)), child: Text('${_periods.length} tiết', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFFF6B00), borderRadius: BorderRadius.circular(20)), child: Text('${_displayPeriods.length} tiết', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
         ],
       ),
     );

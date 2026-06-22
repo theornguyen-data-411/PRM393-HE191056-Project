@@ -25,10 +25,10 @@ class NewsModel {
       tinTucId: data['tinTucId'] ?? '',
       tieuDe: data['tieuDe'] ?? '',
       noiDung: data['noiDung'] ?? '',
-      anhBia: data['anhBia'] ?? '',
+      anhBia: data['anhThumbnail'] ?? data['anhBia'] ?? '',
       ngayDang: (data['ngayDang'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      chuyenMuc: data['chuyenMuc'] ?? 'su_kien',
-      isNoiBat: data['isNoiBat'] ?? false,
+      chuyenMuc: data['danhMuc'] ?? data['chuyenMuc'] ?? 'su_kien',
+      isNoiBat: data['ghim'] ?? data['isNoiBat'] ?? false,
     );
   }
 

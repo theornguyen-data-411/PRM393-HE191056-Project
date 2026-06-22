@@ -25,10 +25,10 @@ class NotificationModel {
       thongBaoId: data['thongBaoId'] ?? '',
       tieuDe: data['tieuDe'] ?? '',
       noiDung: data['noiDung'] ?? '',
-      ngayTao: (data['ngayTao'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      ngayTao: (data['taoLuc'] as Timestamp?)?.toDate() ?? (data['ngayTao'] as Timestamp?)?.toDate() ?? DateTime.now(),
       loai: data['loai'] ?? 'hoc_vu',
-      isGhim: data['isGhim'] ?? false,
-      isRead: data['isRead'] ?? false,
+      isGhim: data['ghim'] ?? data['isGhim'] ?? false,
+      isRead: data['daDoc'] ?? data['isRead'] ?? false,
     );
   }
 

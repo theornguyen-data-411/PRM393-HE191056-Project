@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'view/auth/login_screen.dart';
-import 'view/auth/forgot_password_screen.dart';
-import 'view/student/dashboard/student_dashboard_screen.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/view/auth/login_screen.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/view/auth/forgot_password_screen.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/view/student/dashboard/student_dashboard_screen.dart';
 
 class AppRouter {
   static const String login = '/';

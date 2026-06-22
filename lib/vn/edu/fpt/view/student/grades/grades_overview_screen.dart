@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../model/grade_model.dart';
-import '../../../service/grade_service.dart';
-import '../../../component/bottom_nav_bar.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/grade_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/service/grade_service.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/component/bottom_nav_bar.dart';
 
 class GradesOverviewScreen extends StatefulWidget {
   const GradesOverviewScreen({super.key});

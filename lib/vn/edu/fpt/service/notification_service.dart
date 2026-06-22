@@ -1,25 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../model/notification_model.dart';
-import '../model/news_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/notification_model.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/model/news_model.dart';
 
 class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<List<NotificationModel>> getNotifications() async {
-    final snapshot = await _db.collection('thong_bao')
-        .orderBy('isGhim', descending: true)
-        .orderBy('ngayTao', descending: true)
-        .get();
-        
-    return snapshot.docs.map((doc) => NotificationModel.fromFirestore(doc)).toList();
+  Future<List<NotificationModel>> getNotifications({String userId = 'hs_001'}) async {
+    try {
+      // Simplified query to avoid complex index requirements
+      final snapshot = await _db.collection('thong_bao_push')
+          .where('userId', isEqualTo: userId)
+          .get();
+          
+      final list = snapshot.docs.map((doc) => NotificationModel.fromFirestore(doc)).toList();
+      // Sort in memory to avoid "Query requires an index" error
+      list.sort((a, b) => b.ngayTao.compareTo(a.ngayTao));
+      return list;
+    } catch (e) {
+      print('Error fetching notifications: $e');
+      return [];
+    }
   }
 
   Future<List<NewsModel>> getNews() async {
-    final snapshot = await _db.collection('tin_tuc')
-        .orderBy('isNoiBat', descending: true)
-        .orderBy('ngayDang', descending: true)
-        .get();
-        
-    return snapshot.docs.map((doc) => NewsModel.fromFirestore(doc)).toList();
+    try {
+      final snapshot = await _db.collection('tin_tuc').get();
+          
+      final list = snapshot.docs.map((doc) => NewsModel.fromFirestore(doc)).toList();
+      // Sort in memory: Pinned first, then by date
+      list.sort((a, b) {
+        if (a.isNoiBat != b.isNoiBat) {
+          return a.isNoiBat ? -1 : 1;
+        }
+        return b.ngayDang.compareTo(a.ngayDang);
+      });
+      return list;
+    } catch (e) {
+      print('Error fetching news: $e');
+      return [];
+    }
   }
 }

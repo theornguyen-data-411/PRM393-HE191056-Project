@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:myfschoolse1915/vn/edu/fpt/component/app_colors.dart';
+import 'package:myfschoolse1915/vn/edu/fpt/core/app_colors.dart';
 import 'package:myfschoolse1915/vn/edu/fpt/component/guardian_bottom_nav_bar.dart';
 import 'package:myfschoolse1915/vn/edu/fpt/component/child_banner.dart';
 
